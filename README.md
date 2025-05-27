@@ -1,1 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Americas Interactive Map</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        header {
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            width: 100%;
+        }
+        #map-container {
+            position: relative;
+            width: 90%;
+            max-width: 1200px; /* Adjust as needed */
+            margin-top: 20px;
+            border: 2px solid #333;
+        }
+        #map-image {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .location-marker {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background-color: rgba(255, 0, 0, 0.7);
+            border: 1px solid white;
+            border-radius: 50%;
+            cursor: pointer;
+            transform: translate(-50%, -50%); /* Center the marker */
+            box-shadow: 0 0 5px black;
+            transition: transform 0.2s ease-out, background-color 0.2s ease-out;
+        }
+        .location-marker:hover {
+            transform: translate(-50%, -50%) scale(1.5);
+            background-color: rgba(255, 100, 100, 0.9);
+        }
+        .location-marker .tooltip {
+            visibility: hidden;
+            width: 120px;
+            background-color: black;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 150%; /* Position tooltip above the marker */
+            left: 50%;
+            margin-left: -60px; /* Use half of the width (120/2 = 60) to center the tooltip */
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .location-marker:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
 
+        #info-panel {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 600px;
+            background-color: white;
+            border: 2px solid #333;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            padding: 20px;
+            z-index: 1000;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        #info-panel h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        #info-panel h3 {
+            margin-top: 10px;
+            color: #555;
+            font-size: 1em;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        #info-panel p {
+            line-height: 1.6;
+            color: #444;
+        }
+        #info-panel .close-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #777;
+        }
+        #info-panel .close-button:hover {
+            color: #333;
+        }
+        #info-panel strong {
+            color: #222;
+        }
+        .district-list {
+            list-style-type: disc;
+            padding-left: 20px;
+        }
+        .district-list li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Interactive Map of the World of Mythos</h1>
+        <p>Click on a red marker to learn more about the location.</p>
+    </header>
+
+    <div id="map-container">
+        <img id="map-image" src="input_file_0.png" alt="Fantasy Map of the Americas">
+        <!-- Location markers will be added here by JavaScript -->
+    </div>
+
+    <div id="info-panel">
+        <span class="close-button" onclick="closeInfoPanel()">&times;</span>
+        <h2 id="info-name"></h2>
+        <h3 id="info-type"></h3>
+        <h3>Lore:</h3>
+        <div id="info-lore"></div>
+        <h3>Visual Description:</h3>
+        <p id="info-image-desc"></p>
+    </div>
+
+    <script>
+        const locations = {
+            "newYork": {
+                name: "New York",
+                type: "Imperial Capital (Greater American Empire)",
+                lore: "Once a pre-Fracture metropolis, New York was reborn as the glittering capital of the Greater American Empire, ruling over the territories of the former United States and Canada. Its skyline is a testament to human ingenuity and magical prowess, with magitech towers scraping the heavens, powered by colossal mana reactors. The city serves as the Empire's primary administrative, military, and economic hub. The Imperial Magical Academy here trains elite battlemages, and factories churn out advanced weaponry for the ongoing war with the Solvaris Alliance. Beneath the gleaming surface, however, whispers of dissent from subjugated populations and the immense pressure of maintaining imperial dominance create a tense undercurrent.",
+                imageDesc: "A panoramic view of New York reveals towering obsidian and steel skyscrapers interwoven with glowing blue energy conduits. Imperial airships patrol the skies, their banners displaying the golden eagle of the Empire. Streets are filled with a mix of humans in formal attire and magically augmented soldiers, with holographic advertisements flashing news of imperial victories.",
+                coords: { top: "38%", left: "72%" }
+            },
+            "ruinsOfWashington": {
+                name: "Ruins of Washington",
+                type: "Ruins / Historic Battlefield (Greater American Empire)",
+                lore: "The former capital of a powerful pre-Fracture nation, Washington was an early casualty of the Great Fracture. Overrun by monstrous creatures emerging from a lesser dimensional tear, the city became a symbol of humanity's vulnerability. Later, during the early formation of the American Empire, it was the site of the 'Battle of the Blighted Capital,' where nascent imperial forces, using crude early forms of magitech, clashed with a powerful Demon lord who had claimed the ruins. Though the Empire eventually secured the area, much of the city remains a haunted, magically-scarred wasteland, a restricted zone patrolled by imperial sentinels within Greater American Empire territory.",
+                imageDesc: "Skeletal remains of pre-Fracture buildings, overgrown with mutated flora and stained with dark, magical residue. Ghostly energies flicker in the shadows. A few fortified imperial checkpoints stand guard at the perimeter, their searchlights cutting through the eerie silence.",
+                coords: { top: "39.8%", left: "66.8%" }
+            },
+            "mexicoCity": {
+                name: "Mexico City",
+                type: "Capital of Mexico (Solvaris Alliance)",
+                lore: "Located near one of the largest original rift zones from the Great Fracture, Mexico City was irrevocably changed. It now stands as the proud capital of Solvaris-aligned Mexico. It became a chaotic melting pot of human survivors and diverse Otherworld races – from resilient Dwarven miners carving new homes in the mountains to secretive Cryptid communities in the sprawling undercity. It's a city of vibrant, often clashing cultures, ancient magics, and burgeoning black markets, serving as a major diplomatic and cultural center for the Solvaris Alliance in North America. The Alliance presence is strong, fostering unity against imperial ambitions.",
+                imageDesc: "A sprawling, vibrant city where ancient pyramids stand alongside magitech structures adapted with Solvaris aesthetics. Marketplaces teem with a myriad of races: humans haggling with sly Dragonoid merchants, Elven herbalists selling exotic plants, and Solvaris honor guards navigating the crowded streets. A faint, colorful magical haze hangs in the air from countless small spells and enchantments.",
+                coords: { top: "53%", left: "49%" }
+            },
+            "peruCity": {
+                name: "Peru City",
+                type: "Capital of The Kingdom of Western South America (Solvaris Alliance)",
+                lore: "Nestled high in the Andes, Peru City is the majestic capital of The Kingdom of Western South America, a prominent nation within the Solvaris Alliance. Renowned for its mastery of ancient elemental magic and its deep connection to the spirits of the mountains, it is ruled by a council of wise Elven elders, Human geomancers, and formidable Goliath chieftains. The city resisted imperial encroachment for centuries, symbolizing Solvaris resilience. Its architecture is a harmonious blend of stone and living wood, with waterfalls cascading through districts and condor-mounted sky-riders patrolling the peaks. Peru City is a key training ground for Solvaris mages specializing in earth and air magic.",
+                imageDesc: "A breathtaking city carved into the mountainside, with structures that seem to grow organically from the rock. Terraced gardens bloom with vibrant, magically enhanced flora. Elves with intricate wooden armor and Goliaths clad in stone stand guard. In the central plaza, a massive crystal pulses with elemental energy, anchoring the city's magical defenses and Solvaris banners fly proudly.",
+                coords: { top: "72%", left: "67.7%" }
+            },
+            "amazonOutpost": {
+                name: "Amazon Outpost",
+                type: "Solvaris Alliance Territory / Research Outpost",
+                lore: "Deep within the magically altered Amazon rainforest, now part of Solvaris Alliance territory, this fortified outpost serves as a vital node for the Alliance and various independent Elven and Demi-Human tribes. It's a hub for studying the unique flora and fauna mutated by the influx of magical energies post-Fracture and for harnessing potent nature magic. Defenders of the outpost are experts in guerilla warfare and natural magic, often serving as a first line of defense against any potential Imperial incursions into the rainforest.",
+                imageDesc: "A settlement built amongst colossal, magically infused trees, connected by rope bridges and camouflaged platforms, all bearing Solvaris insignia. Elven archers with glowing arrows and Demi-Humans with animalistic features move silently through the foliage. Strange, bioluminescent plants illuminate the outpost at night, and the air hums with the sounds of the jungle and powerful Solvaris nature enchantments.",
+                coords: { top: "64%", left: "72.8%" }
+            },
+            "quebecMagicAcademy": {
+                name: "Quebec Magic Academy",
+                type: "Neutral / Solvaris-leaning Academy (Within Greater American Empire Territory)",
+                lore: "A renowned institution predating the current Empire-Alliance war, the Quebec Magic Academy has long prided itself on its neutrality and comprehensive magical curriculum, attracting students from all races and nations. Though located within Greater American Empire territory, its independence is fiercely guarded. However, with the Empire's expansionist policies, the Academy has found itself increasingly at odds with imperial edicts, particularly those restricting certain 'dangerous' forms of magic favored by Solvaris traditions. Many of its alumni are prominent figures in the Solvaris Alliance, and the Empire views it with deep suspicion.",
+                imageDesc: "A grand, gothic-style citadel of stone and ice, magically protected from the harsh northern climate. Towers glow with various magical lights, representing different schools of magic. Students of diverse races – humans, elves, dragonoids, and even a few stoic dwarves – can be seen practicing spells in courtyards or flying on enchanted brooms/creatures around the spires.",
+                coords: { top: "25%", left: "78.4%" } // Slightly adjusted from previous
+            },
+            "newSeattle": {
+                name: "New Seattle",
+                type: "Imperial Port City (Greater American Empire)",
+                lore: "Re-Located after early post-Fracture chaos, New Seattle is a major port and industrial center for the Greater American Empire on the Pacific coast. It's known for the production of enchanted weaponry, vital for projecting imperial power across the western territories and countering potential threats from coastal Solvaris-aligned groups or sea monsters from the altered oceans. The city also houses a significant garrison and is a key logistical point for operations in the contested northern regions like Vancouver Keep.",
+                imageDesc: "A bustling port city where magitech-enhanced warships are docked alongside civilian vessels. Arcane cranes load and unload cargo. The city rises from the coast with a mix of utilitarian industrial buildings and more ornate imperial administrative centers. A constant drizzle, often carrying a faint magical charge, falls over the city.",
+                coords: { top: "32.5%", left: "40.5%" }
+            },
+            "dakotatown": {
+                name: "Dakotatown",
+                type: "Imperial Frontier Town (Greater American Empire)",
+                lore: "Located on the vast plains of the former American Midwest, Dakotatown serves as an agricultural and resource hub for the Greater American Empire, secured by imperial legions. It's a frontier town where hardy human settlers, often augmented by basic utility magic, work alongside subjugated Goliath laborers in the expansive farmlands and mines. The region is prone to raids from nomadic Demi-Human tribes and monstrous beasts roaming the plains, making life here a constant struggle.",
+                imageDesc: "A fortified town surrounded by vast fields of magically enhanced crops and strip mines. Wooden palisades and watchtowers manned by imperial soldiers enclose modest buildings. Large, magically-drawn plows till the land, and smoke rises from smithies forging tools and basic weapons.",
+                coords: { top: "35%", left: "52%" }
+            },
+            "theScarredWastes": {
+                name: "The Scarred Wastes",
+                type: "Devastated Battlefield / No-Man's-Land (Border Region)",
+                lore: "Once fertile plains between the American Empire and Solvaris-aligned territories, now a desolate, magically-ravaged wasteland. This area was the site of the 'Hundred Day Offensive,' where both sides unleashed devastating arcane bombardments and legions of magically-enhanced soldiers. The land is permanently scarred, with lingering magical storms, mutated creatures, and fields of shattered war machines. It serves as a grim no-man's-land, a testament to the destructive power of modern magical warfare.",
+                imageDesc: "A barren landscape of cracked earth, littered with the rusted husks of war golems and skeletal remains. Twisted, dead trees claw at a perpetually stormy sky, illuminated by flashes of residual magical energy. Trenches and craters mar the terrain.",
+                coords: { top: "47%", left: "46%" }
+            },
+            "mythosAcademy": {
+                name: "Mythos Academy",
+                type: "Independent Magical Institution (Island Sanctuary)",
+                lore: `Mythos Academy, an ancient and revered institution, resides on a secluded, heavily warded island off the western coast, maintaining a staunch independence from continental powers like the Greater American Empire. Accessible primarily by a dedicated civilian transport ship to its Harbor District, the Academy is a sanctuary for those with rare magical talents from all races. It's divided into distinct districts:
+                <ul class="district-list">
+                    <li><strong>The Harbor District:</strong> A welcoming entry point with residential areas surrounding a grand reception building.</li>
+                    <li><strong>The Shopping District:</strong> A bustling commercial hub with everything a student or mage could need, from spell components and enchanted items to mundane supplies, featuring a bank, bakery, pet shop, and a grand Magic-Theater.</li>
+                    <li><strong>The Main Plaza:</strong> A vast open space dominated by magnificent statues of the Academy's Four Founders: Helzephyr Hakai (Demon Race, The First Demon King), Typhus Summerstar (Human Race, The Pinnacle of Humanity), Drathos Indomina (Dragonoid Race, The Dragon Monarch), and Seraphina Apollyon (Angel Race, The Heavenly Paladin).</li>
+                    <li><strong>The Student Dorm District:</strong> An impressive avenue lined with eight massive, architecturally distinct Dorm Houses.</li>
+                    <li><strong>The Academy District:</strong> The heart of learning, containing a colossal library, two primary school buildings, a central cafeteria, an auditorium for lectures and performances, and a vast stadium for magical duels, combat training, and arcane games.</li>
+                </ul>
+                The Academy's true power and the full extent of the knowledge it guards remain a subject of much speculation and respect across the fractured world.`,
+                imageDesc: "An aerial view shows a lush, mist-shrouded island. The Harbor District is visible with ships docked at magically reinforced piers. Further inland, the Shopping District buzzes with activity, its buildings a charming mix of styles. The Main Plaza is a grand, open space, with the four towering statues gleaming under the sun. Beyond it, the distinct structures of the Dorms and the sprawling Academy District with its prominent library and stadium dominate the landscape. Arcane energies subtly shimmer around the island's perimeter, hinting at powerful protective wards.",
+                coords: { top: "32.6%", left: "23.5%" } // Adjusted to be on the island
+            },
+             "vancouverKeep": {
+                name: "Vancouver Keep",
+                type: "Contested Northern Military Keep (Greater American Empire)",
+                lore: "A heavily fortified military keep on the northern frontier, Vancouver Keep is a critical strategic point for the Greater American Empire, though often contested. Its rugged terrain and the resilient spirit of its mixed Human, Elf, and Dwarf Imperial garrison have made it a bastion of Imperial control in the north. The Keep leverages its natural defenses and Imperial magitech to repel incursions and project power into surrounding territories.",
+                imageDesc: "A fortress-like military installation built amidst towering, ancient forests and rugged mountains, clearly marked with Imperial banners. Stone walls are interwoven with magically strengthened trees and Imperial magitech emplacements. Imperial soldiers of diverse races patrol the battlements, armed with both traditional weapons and Imperial-issue magical sidearms.",
+                coords: { top: "17.2%", left: "20%" }
+            },
+            "fortCarolina": {
+                name: "Fort Carolina",
+                type: "Imperial Military Fortress (Greater American Empire)",
+                lore: "A critical military fortress for the Greater American Empire, Fort Carolina guards the southeastern territories and serves as a staging ground for operations deeper into contested southern lands. It boasts formidable magitech defenses and a large standing army. The fort was instrumental in quelling early rebellions and continues to project Imperial power, though it frequently faces skirmishes with Solvaris-backed guerilla groups emerging from the swamplands and mountains.",
+                imageDesc: "A massive, star-shaped fortress of dark metal and enchanted stone, bristling with arcane cannons and magical energy shields, all bearing Imperial markings. Legions of Imperial soldiers drill in its courtyards, and airships frequently land and take off from its central command tower. The surrounding land is cleared for miles, offering no cover to attackers.",
+                coords: { top: "41%", left: "65%" }
+            },
+            "portland": {
+                name: "Portland",
+                type: "Imperial City / Major Port (Greater American Empire)",
+                lore: "A vital port city for the Greater American Empire, Portland thrives on trade and shipbuilding, complementing the industrial output of New Seattle further north. Its proximity to the independent Mythos Academy has led to a unique cultural blend, with a notable population of mages and scholars alongside Imperial officials. The city is also a key logistical hub for imperial interests in the Pacific Northwest.",
+                imageDesc: "A bustling harbor filled with Imperial merchant ships and smaller fishing vessels, alongside a few elegantly crafted ships belonging to mages from Mythos Academy. The city architecture is a practical mix of stone and timber, with magically reinforced seawalls. The air often smells of salt, pine, and the faint scent of magical reagents from various artisan shops.",
+                coords: { top: "33.8%", left: "27.8%" }
+            },
+            "newLA": { // "New L.A." to "newLA" for key consistency
+                name: "New L.A.",
+                type: "Imperial Metropolis / Cultural Hub (Greater American Empire)",
+                lore: "Rebuilt from the ruins of its pre-Fracture predecessor, New Los Angeles stands as a sprawling Imperial metropolis on the western coast. It's a major center for magitech innovation in entertainment and luxury goods, catering to the Empire's elite. While fiercely loyal to the Empire, New L.A. fosters a surprisingly diverse population, including a significant number of Demi-Humans who have found niches in its vast economy. The city is a beacon of Imperial prosperity, though shadows of criminal enterprises and social inequality linger beneath its glittering facade.",
+                imageDesc: "Gleaming magitech towers rise above sprawling districts connected by sky-lanes used by personal flyers. Holographic billboards display vibrant advertisements for magical entertainment and luxury items. Parks are cultivated with magically enhanced flora. The streets are a vibrant mix of humans in fashionable attire and diverse Demi-Humans showcasing their unique traits.",
+                coords: { top: "41%", left: "32%" }
+            },
+            "newChicago": {
+                name: "New Chicago",
+                type: "Imperial Industrial Center (Greater American Empire)",
+                lore: "The heart of the Greater American Empire's industrial might in the continental interior, New Chicago is a city of foundries, manufactories, and arcane engineering workshops. Situated near the Great Lakes, it leverages water and earth magic for large-scale production of imperial war machines, infrastructure components, and consumer goods. Life here is regimented and focused on productivity, with a strong military presence ensuring order and adherence to imperial quotas. Dwarven engineers are often contracted here for their expertise in large-scale construction and metalwork.",
+                imageDesc: "A city skyline dominated by massive factory complexes belching magically treated smoke and steam. Arcane energy conduits crisscross the city, powering colossal machinery. Heavily laden transport barges move along magically widened waterways. The streets are functional, with workers in utilitarian clothing and imperial guards on patrol.",
+                coords: { top: "36.9%", left: "58.2%" }
+            },
+            "ottawa": {
+                name: "Ottawa",
+                type: "Imperial Administrative City / Northern Command (Greater American Empire)",
+                lore: "Serving as a key administrative center for the northern territories of the Greater American Empire, Ottawa is a city of stark, imposing architecture and well-ordered efficiency. It houses numerous governmental bureaus and is the primary command center for imperial forces operating in the Canadian regions, often coordinating efforts against Solvaris incursions and managing relations with neutral or resistant northern communities. Its proximity to the somewhat independent Quebec Magic Academy leads to a constant Imperial intelligence presence.",
+                imageDesc: "Grand, imposing government buildings constructed from dark stone and steel, flying the banners of the Greater American Empire. Wide, meticulously planned avenues are patrolled by disciplined Imperial soldiers. A few magically shielded structures hint at sensitive military or magical research facilities. The city has a formal, slightly cold atmosphere.",
+                coords: { top: "34%", left: "71%" }
+            },
+            "newRio": {
+                name: "New Rio",
+                type: "Capital of Brazil (Solvaris Alliance)",
+                lore: "The vibrant capital of Solvaris-aligned Brazil, New Rio is a dazzling city where lush, magically-enhanced nature intertwines with breathtaking architecture. Built along the coast and sprawling into the reclaimed rainforest, it's a melting pot of human, Elven, and diverse Demi-Human cultures, renowned for its mastery of life-weaving magic and powerful nature-based defenses. New Rio is a major center for Solvaris diplomacy and trade in South America, fiercely proud of its independence and its unique blend of ancient traditions and magically adapted technology. Its Carnival is a legendary spectacle of magical artistry and joyous defiance.",
+                imageDesc: "A stunning city where buildings gracefully integrate with towering, bioluminescent trees and cascading waterfalls. Colorful plazas are filled with people of all races, adorned in vibrant attire. Elven sky-riders on giant tropical birds patrol the skies alongside Solvaris air skiffs. The iconic Sugarloaf Mountain analogue is wreathed in protective magical wards and crowned with a Solvaris beacon.",
+                coords: { top: "75%", left: "94.8%" }
+            }
+        };
+
+        const mapContainer = document.getElementById('map-container');
+        const infoPanel = document.getElementById('info-panel');
+        const infoName = document.getElementById('info-name');
+        const infoType = document.getElementById('info-type');
+        const infoLoreDiv = document.getElementById('info-lore'); // Changed to Div
+        const infoImageDesc = document.getElementById('info-image-desc');
+
+        function displayLocationInfo(locationKey) {
+            const loc = locations[locationKey];
+            if (loc) {
+                infoName.textContent = loc.name;
+                infoType.textContent = `Type: ${loc.type}`;
+                infoLoreDiv.innerHTML = loc.lore; // Use innerHTML for lists etc.
+                infoImageDesc.innerHTML = loc.imageDesc.replace(/\n/g, '<br>');
+                infoPanel.style.display = 'block';
+            }
+        }
+
+        function closeInfoPanel() {
+            infoPanel.style.display = 'none';
+        }
+
+        window.onload = () => {
+            for (const key in locations) {
+                const loc = locations[key];
+                const marker = document.createElement('div');
+                marker.className = 'location-marker';
+                marker.style.top = loc.coords.top;
+                marker.style.left = loc.coords.left;
+                
+                const tooltipSpan = document.createElement('span');
+                tooltipSpan.className = 'tooltip';
+                tooltipSpan.textContent = loc.name;
+                marker.appendChild(tooltipSpan);
+
+                marker.onclick = () => displayLocationInfo(key);
+                mapContainer.appendChild(marker);
+            }
+        };
+
+    </script>
+
+</body>
+</html>
